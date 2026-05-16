@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AG Hub Database">
+<meta name="theme-color" content="#0a0e1a">
+<title>AG Hub Database</title>
+<script>
+// Generate favicon dynamically
+(function(){
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  // Rounded rect background
+  const r = 12;
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.lineTo(64-r,0);
+  ctx.quadraticCurveTo(64,0,64,r);
+  ctx.lineTo(64,64-r); ctx.quadraticCurveTo(64,64,64-r,64);
+  ctx.lineTo(r,64); ctx.quadraticCurveTo(0,64,0,64-r);
+  ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,64,64);
+  grad.addColorStop(0,'#e07b39'); grad.addColorStop(1,'#d45f20');
+  ctx.fillStyle = grad; ctx.fill();
+  // AG text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 28px -apple-system, Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('AG', 32, 26);
+  // HUBS text
+  ctx.font = 'bold 13px -apple-system, Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('HUBS', 32, 47);
+  const link = document.createElement('link');
+  link.rel = 'icon'; link.type = 'image/png';
+  link.href = c.toDataURL('image/png');
+  document.head.appendChild(link);
+  // Also Apple touch icon
+  const touch = document.createElement('link');
+  touch.rel = 'apple-touch-icon';
+  touch.href = c.toDataURL('image/png');
+  document.head.appendChild(touch);
+})();
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #0a0e1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; overscroll-behavior: none; }
+
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  /* HEADER */
+  #header {
+    background: linear-gradient(90deg, #0f172a 0%, #1e2a3a 100%);
+    border-bottom: 1px solid #1e3a5f;
+    padding: 12px 14px 10px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 24px #00000088;
+    position: relative;
+    z-index: 10;
+  }
+  .header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .header-icon {
+    width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, #e07b39, #d45f20);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 0 14px #e07b3966; line-height: 1;
+  }
+  .header-icon .logo-ag { font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+  .header-icon .logo-hubs { font-size: 8px; font-weight: 700; color: #ffffffcc; letter-spacing: 1.5px; line-height: 1; margin-top: 2px; }
+  .header-title { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; color: #f1f5f9; }
+  .header-sub { font-size: 10px; color: #64748b; letter-spacing: 0.8px; margin-top: 1px; }
+
+  /* SEARCH */
+  .search-wrap { position: relative; margin-bottom: 8px; }
+  .search-wrap .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #475569; font-size: 14px; pointer-events: none; }
+  #searchInput {
+    width: 100%; background: #0f172a; border: 1px solid #334155;
+    border-radius: 8px; padding: 9px 34px 9px 32px;
+    font-size: 13px; color: #f1f5f9; outline: none;
+    -webkit-appearance: none; appearance: none;
+    transition: border-color 0.15s;
+  }
+  #searchInput:focus { border-color: #e07b39; }
+  #clearBtn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #64748b; font-size: 16px;
+    cursor: pointer; display: none; padding: 4px;
+  }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    padding: 4px 11px; border-radius: 6px; border: 1px solid #334155;
+    background: transparent; color: #64748b; font-size: 11px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    -webkit-appearance: none; transition: all 0.15s;
+  }
+  .filter-btn.active-all { border-color: #e07b39; background: #e07b3922; color: #e07b39; }
+  .filter-btn.active-4  { border-color: #e07b39; background: #e07b3922; color: #e07b39; }
+  .filter-btn.active-5  { border-color: #3b82f6; background: #3b82f622; color: #3b82f6; }
+  .filter-btn.active-6  { border-color: #10b981; background: #10b98122; color: #10b981; }
+  .filter-btn.active-8  { border-color: #a855f7; background: #a855f722; color: #a855f7; }
+  .filter-btn.active-10 { border-color: #ef4444; background: #ef444422; color: #ef4444; }
+  .result-count { margin-left: auto; font-size: 11px; color: #475569; flex-shrink: 0; white-space: nowrap; }
+
+  /* SCROLL AREA */
+  #results { flex: 1; overflow-y: auto; padding: 12px 12px 32px; -webkit-overflow-scrolling: touch; }
+
+  /* HINT */
+  .hint {
+    font-size: 11px; color: #64748b; margin-bottom: 10px; padding: 7px 10px;
+    background: #0f172a; border-radius: 6px; border: 1px solid #1e293b;
+  }
+  .hint span { color: #e07b39; font-family: monospace; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 60px 20px; color: #475569; }
+  .empty .icon { font-size: 36px; margin-bottom: 10px; }
+  .empty .title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+  .empty .sub { font-size: 12px; }
+  .empty code { color: #e07b39; }
+
+  /* HUB CARD */
+  .card {
+    border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+    background: linear-gradient(135deg, #1e2330 0%, #252b3b 100%);
+    border: 1px solid transparent;
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 10px; padding: 11px 12px;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+  }
+  .bolt-badge {
+    border-radius: 7px; width: 38px; height: 38px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .bolt-badge .num { font-size: 14px; font-weight: 800; color: #fff; line-height: 1; }
+  .bolt-badge .lbl { font-size: 8px; color: #ffffffaa; font-weight: 600; letter-spacing: 1px; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-ref { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+  .card-meta { font-size: 10px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-part { font-size: 10px; color: #94a3b8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chevron { color: #475569; font-size: 12px; flex-shrink: 0; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* QUICK PILLS AREA */
+  .quick-pills { padding: 0 12px 6px; display: flex; flex-direction: column; gap: 5px; }
+
+  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .pill {
+    background: #0f172a; border-radius: 6px; padding: 4px 8px;
+    border: 1px solid #334155; font-size: 10.5px; color: #94a3b8;
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .pill.accent { border-color: transparent; }
+  .pill .lbl { font-weight: 700; font-size: 9px; letter-spacing: 0.4px; flex-shrink: 0; }
+  .pill .val { color: #cbd5e1; font-family: monospace; font-weight: 600; }
+  .pill .dim { color: #475569; }
+  .pill .sep { color: #334155; }
+
+  .seal-pill {
+    background: #0f172a; border-radius: 6px; padding: 4px 8px;
+    font-size: 10.5px; color: #94a3b8;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .seal-pill.accent { border: 1px solid transparent; }
+  .seal-top { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .seal-bottom { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .seal-pill .lbl { font-weight: 700; font-size: 9px; letter-spacing: 0.4px; }
+  .seal-pill .val { color: #cbd5e1; font-family: monospace; font-weight: 600; }
+  .seal-pill .dim { color: #475569; }
+  .seal-pill .sep { color: #334155; }
+
+  /* EXPANDED DETAIL */
+  .detail { border-top: 1px solid #1e293b; padding: 12px; display: none; }
+  .detail.open { display: block; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+  .detail-cell {
+    background: #0f172a; border-radius: 6px; padding: 6px 8px;
+    border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 2px;
+  }
+  .detail-cell .lbl { font-size: 9px; color: #475569; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
+  .detail-cell .val { font-size: 11px; color: #cbd5e1; font-family: monospace; word-break: break-all; }
+
+  mark { background: #fde68a; border-radius: 2px; padding: 0 1px; color: #1a1a1a; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="header-top">
+      <div class="header-icon"><span class="logo-ag">AG</span><span class="logo-hubs">HUBS</span></div>
+      <div>
+        <div class="header-title">AG Hub Database</div>
+        <div class="header-sub">Agricultural Components</div>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <span class="icon">🔍</span>
+      <input id="searchInput" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        placeholder="Search bearing #, diameter, hub ref, seal…">
+      <button id="clearBtn">✕</button>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active-all" data-bolt="all">All Bolts</button>
+      <button class="filter-btn" data-bolt="4">4-Bolt</button>
+      <button class="filter-btn" data-bolt="5">5-Bolt</button>
+      <button class="filter-btn" data-bolt="6">6-Bolt</button>
+      <button class="filter-btn" data-bolt="8">8-Bolt</button>
+      <button class="filter-btn" data-bolt="10">10-Bolt</button>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+  </div>
+  <div id="results"></div>
+</div>
+
+<script>
+const BOLT_COLORS = { 4:"#e07b39", 5:"#3b82f6", 6:"#10b981", 8:"#a855f7", 10:"#ef4444" };
+
+const SEAL_DATA = {
+  "AG-GS-19871250SL": { id:'1.250"', od:'1.987"', width:'0.250"', ref:"12437" },
+  "AG-GS-23321500SL": { id:'1.500"', od:'2.332"', width:'0.390"', ref:"14975" },
+  "AG-GS-26271500DL": { id:'1.500"', od:'2.627"', width:'0.250"', ref:"15190" },
+  "AG-GS-23321625SL": { id:'1.625"', od:'2.332"', width:'0.438"', ref:"16069" },
+  "AG-GS-25661625SL": { id:'1.625"', od:'2.566"', width:'0.438"', ref:"16289" },
+  "AG-GS-27221750SL": { id:'1.750"', od:'2.722"', width:'0.359"', ref:"17617" },
+  "AG-GS-30051875SL": { id:'1.875"', od:'3.005"', width:'0.250"', ref:"18823" },
+  "AG-GS-30662000SL": { id:'2.000"', od:'3.066"', width:'0.250"', ref:"20044" },
+  "AG-GS-36282000SL": { id:'2.000"', od:'3.628"', width:'0.250"', ref:"20148" },
+  "AG-GS-30052250SL": { id:'2.250"', od:'3.005"', width:'0.250"', ref:"22368" },
+  "AG-GS-30662250SL": { id:'2.250"', od:'3.066"', width:'0.250"', ref:"22392" },
+  "AG-GS-37562500SL": { id:'2.500"', od:'3.756"', width:'0.438"', ref:"25091" },
+  "AG-GS-37562750SL": { id:'2.750"', od:'3.756"', width:'0.250"', ref:"27394" },
+  "AG-GS-40083000SL": { id:'3.000"', od:'4.008"', width:'0.250"', ref:"29968" },
+  "AG-GS-45053000SL": { id:'3.000"', od:'4.505"', width:'0.438"', ref:"30087" },
+  "AG-GS-46313375SL": { id:'3.375"', od:'4.631"', width:'0.438"', ref:"33772" },
+  "AG-GS-60074375SL": { id:'4.375"', od:'6.007"', width:'0.500"', ref:"43771" },
+  "AG-GS-2250DL":     { id:'2.250"', od:'3.376"', width:'0.375"', ref:"22333TB" },
+  "GS-2250DL":        { id:'2.250"', od:'3.376"', width:'0.375"', ref:"22333TB" },
+};
+
+const FIELD_LABELS = {
+  hubRef:"Hub Reference", boltCount:"Bolt Count", boltCircle:"Bolt Circle", pilot:"Pilot",
+  capacity:"Capacity (lb)", wheelOffset:"Wheel Offset", hubPartNo:"Hub Part #",
+  hubAssemblyPartNo:"Hub Assembly Part #", innerCupPartNo:"Inner Cup Part #",
+  innerCupDia:"Inner Cup OD", outerCupPartNo:"Outer Cup Part #", outerCupDia:"Outer Cup OD",
+  innerConePartNo:"Inner Cone Part #", innerConeDia:"Inner Cone ID",
+  outerConePartNo:"Outer Cone Part #", outerConeDia:"Outer Cone ID",
+  dustCapPartNo:"Dust Cap Part #", greaseSealPartNo:"Grease Seal Part #",
+  wheelBoltPartNo:"Wheel Bolt Part #", wheelStudPartNo:"Wheel Stud Part #",
+  wheelNutPartNo:"Wheel Nut Part #", spindlePartNo:"Spindle Part #", spindleNo:"Spindle #",
+  nutPartNo:"Nut Part #", washerPartNo:"Washer Part #", cotterPinPartNo:"Cotter Pin Part #",
+  spinnerTypes:"Types Available", dimA:"Dim A", dimB:"Dim B", dimC:"Dim C", dimD:"Dim D",
+  brakeBoltPattern:"Brake Bolt Pattern", notes:"Notes"
+};
+
+const hubData = [
+  {hubRef:"10-4",boltCount:4,boltCircle:'5.00"',pilot:'3.62"',capacity:1000,wheelOffset:'0.38" Negative',hubPartNo:"AG-H1044500-1Z",hubAssemblyPartNo:"AG-H1044500-1ZHA",innerCupPartNo:"L-44610",innerCupDia:'1.9800"',outerCupPartNo:"L-44610",outerCupDia:'1.9800"',innerConePartNo:"L-44643",innerConeDia:'1.0000"',outerConePartNo:"L-44643",outerConeDia:'1.0000"',dustCapPartNo:"AG-DC-198Z",greaseSealPartNo:"AG-GS-19871250SL",wheelBoltPartNo:"AG-WB1000Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-104125-085",spindleNo:"1",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.53"',dimB:'0.85"',dimC:'1.00"',dimD:'1.25"',notes:"*Non-stock item"},
+  {hubRef:"12-4",boltCount:4,boltCircle:'5.00"',pilot:'3.62"',capacity:1250,wheelOffset:'0.38" Negative',hubPartNo:"AG-H1244500-1Z",hubAssemblyPartNo:"AG-H1244500-1ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-195Z",greaseSealPartNo:"AG-GS-23321625SL",wheelBoltPartNo:"AG-WB1000Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-124163-100",spindleNo:"2",nutPartNo:"AG-FA-SN0625",washerPartNo:"AG-FA-SW0625",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.16"',dimB:'0.94"',dimC:'0.96"',dimD:'0.38"'},
+  {hubRef:"669",boltCount:4,boltCircle:'5.00"',pilot:'3.62"',capacity:1250,wheelOffset:'0.38" Negative',hubPartNo:"AG-H6694500-1Z",hubAssemblyPartNo:"AG-H6694500-1ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-195Z",greaseSealPartNo:"AG-GS-23321500SL",wheelBoltPartNo:"AG-WB1000Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-669163-100",spindleNo:"3",nutPartNo:"AG-FA-SN0625",washerPartNo:"AG-FA-SW0625",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.16"',dimB:'0.94"',dimC:'0.88"',dimD:'0.38"'},
+  {hubRef:"633",boltCount:4,boltCircle:'5.00"',pilot:'3.62"',capacity:1500,wheelOffset:'0.38" Negative',hubPartNo:"AG-H6334500-1Z",hubAssemblyPartNo:"AG-H6334500-1ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-196ALTZ",greaseSealPartNo:"AG-GS-23321500SL",wheelBoltPartNo:"AG-WB1000Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-633163-105",spindleNo:"4",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.05"',dimB:'1.00"',dimC:'1.10"',dimD:'0.38"'},
+  {hubRef:"20-5",boltCount:5,boltCircle:'5.50"',pilot:'4.00"',capacity:2000,wheelOffset:'0.25" Negative',hubPartNo:"AG-H2055550-2Z",hubAssemblyPartNo:"AG-H2055550-2ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-195Z",greaseSealPartNo:"AG-GS-23321625SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-205163-100",spindleNo:"5",nutPartNo:"AG-FA-SN0625",washerPartNo:"AG-FA-SW0625",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.00"',dimB:'1.00"',dimC:'0.94"',dimD:'0.63"'},
+  {hubRef:"736",boltCount:5,boltCircle:'5.50"',pilot:'4.00"',capacity:2000,wheelOffset:'0.25" Negative',hubPartNo:"AG-H7365550-2Z",hubAssemblyPartNo:"AG-H7365550-2ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-195Z",greaseSealPartNo:"AG-GS-23321500SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-736163-105",spindleNo:"6",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.00"',dimB:'1.00"',dimC:'0.94"',dimD:'0.62"'},
+  {hubRef:"511",boltCount:5,boltCircle:'5.50"',pilot:'4.00"',capacity:2000,wheelOffset:'0.25" Negative',hubPartNo:"AG-H5115550-1Z",hubAssemblyPartNo:"AG-H5115550-1ZHA",innerCupPartNo:"LM-67010",innerCupDia:'2.3280"',outerCupPartNo:"LM-11910",outerCupDia:'1.7810"',innerConePartNo:"LM-67048",innerConeDia:'1.2500"',outerConePartNo:"LM-11949",outerConeDia:'0.7500"',dustCapPartNo:"AG-DC-195Z",greaseSealPartNo:"AG-GS-23321500SL",wheelBoltPartNo:"AG-WB1250Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-736163-105",spindleNo:"6",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.00"',dimB:'1.00"',dimC:'0.94"',dimD:'0.63"',notes:"*Non-stock item"},
+  {hubRef:"25-5",boltCount:5,boltCircle:'5.50"',pilot:'4.00"',capacity:2500,wheelOffset:'0.25" Negative',hubPartNo:"AG-H2555550-2Z",hubAssemblyPartNo:"AG-H2555550-2ZHA",innerCupPartNo:"LM-48510",innerCupDia:'2.5625"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-48548",innerConeDia:'1.3750"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-27221750SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-255175-125",spindleNo:"7",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750-H",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.56"',dimB:'1.03"',dimC:'0.94"',dimD:'0.19"'},
+  {hubRef:"719",boltCount:5,boltCircle:'5.50"',pilot:'4.00"',capacity:2760,wheelOffset:'0.25" Negative',hubPartNo:"AG-H7195550-2Z",hubAssemblyPartNo:"AG-H7195550-2ZHA",innerCupPartNo:"LM-48510",innerCupDia:'2.5625"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-48548",innerConeDia:'1.3750"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-26271500DL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-719175-115",spindleNo:"8",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.56"',dimB:'1.00"',dimC:'1.06"',dimD:'0.22"'},
+  {hubRef:"30-6",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3000,wheelOffset:'1.12" Positive',hubPartNo:"AG-H3066600-2Z",hubAssemblyPartNo:"AG-H3066600-2ZHA",innerCupPartNo:"LM-29710",innerCupDia:'2.5625"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-29749",innerConeDia:'1.5000"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-27221750SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-306175-120",spindleNo:"9",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0875",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.19"',dimB:'1.00"',dimC:'0.94"',dimD:'1.94"'},
+  {hubRef:"35-6 (Threaded)",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3500,wheelOffset:'1.12" Positive',hubPartNo:"AG-H3566600-1Z",hubAssemblyPartNo:"AG-H3566600-1ZHA",innerCupPartNo:"LM-501310",innerCupDia:'2.8910"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-501349",innerConeDia:'1.6250"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-30662000SL",wheelBoltPartNo:"AG-WB1125Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-356200-130",spindleNo:"10",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750-H",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.84"',dimB:'1.44"',dimC:'0.97"',dimD:'1.56"'},
+  {hubRef:"35-6 (Studded)",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3500,wheelOffset:'1.12" Positive',hubPartNo:"AG-H3566600-2Z",hubAssemblyPartNo:"AG-H3566600-2ZHA",innerCupPartNo:"LM-501310",innerCupDia:'2.8910"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-501349",innerConeDia:'1.6250"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-30662000SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG0WS1400Z",wheelNutPartNo:"AG-WN91618Z",spindlePartNo:"SP-356200-130",spindleNo:"11",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750-H",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.84"',dimB:'1.44"',dimC:'0.97"',dimD:'1.56"'},
+  {hubRef:"888 (Threaded)",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3560,wheelOffset:'1.12" Positive',hubPartNo:"AG-H8886600-1Z",hubAssemblyPartNo:"AG-H8886600-1ZHA",innerCupPartNo:"JL-69310",innerCupDia:'2.4803"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"JL-69349",innerConeDia:'1.4961"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-25661625SL",wheelBoltPartNo:"AG-WB1250Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-888175-105",spindleNo:"11,12,12A",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.55"',dimB:'1.06"',dimC:'1.06"',dimD:'1.50"',brakeBoltPattern:"N/A"},
+  {hubRef:"888 (Studded)",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3560,wheelOffset:'1.12" Positive',hubPartNo:"AG-H8886600-2Z",hubAssemblyPartNo:"AG-H8886600-2ZHA",innerCupPartNo:"JL-69310",innerCupDia:'2.4803"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"JL-69349",innerConeDia:'1.4961"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-25661625SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1280Z",wheelNutPartNo:"AG-WN1220Z",spindlePartNo:"SP-888200-125",spindleNo:"11,12,12A",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'1.55"',dimB:'1.06"',dimC:'1.06"',dimD:'1.50"',brakeBoltPattern:"N/A"},
+  {hubRef:"611",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3600,wheelOffset:'1.12" Positive',hubPartNo:"AG-H6116600-1Z",hubAssemblyPartNo:"AG-H6116600-1ZHA",innerCupPartNo:"LM-29710",innerCupDia:'2.5625"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-29749",innerConeDia:'1.5000"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-27221750SL",wheelBoltPartNo:"AG-WB1250Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-611175-140",spindleNo:"13",nutPartNo:"AG-FA-SN1000",washerPartNo:"AG-FA-SW1000",cotterPinPartNo:"AG-FA-CP205",spinnerTypes:"W,X,Y",dimA:'1.57"',dimB:'1.06"',dimC:'1.00"',dimD:'1.62"',brakeBoltPattern:"N/A"},
+  {hubRef:"803",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:4910,wheelOffset:'1.12" Positive',hubPartNo:"AG-H8036600-1Z",hubAssemblyPartNo:"AG-H8036600-1ZHA",innerCupPartNo:"25520",innerCupDia:'3.2650"',outerCupPartNo:"25821",outerCupDia:'2.8750"',innerConePartNo:"25590",innerConeDia:'1.7960"',outerConePartNo:"25877",outerConeDia:'1.3750"',dustCapPartNo:"AG-DC-315Z",greaseSealPartNo:"AG-GS-36282000SL",wheelBoltPartNo:"AG-WB1125Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-803213-155",spindleNo:"16",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875-2",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.50"',dimB:'1.38"',dimC:'1.13"',dimD:'1.75"',brakeBoltPattern:"N/A"},
+  {hubRef:"660",boltCount:6,boltCircle:'6.00"',pilot:'4.62"',capacity:3500,wheelOffset:'1.12" Positive',hubPartNo:"AG-H660-42-2",hubAssemblyPartNo:"AG-H660-42-2HA",innerCupPartNo:"25520",innerCupDia:'3.2650"',outerCupPartNo:"14276",outerCupDia:'2.7170"',innerConePartNo:"25580",innerConeDia:'1.7960"',outerConePartNo:"14125A",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-275",greaseSealPartNo:"GS-2250DL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS-2310",wheelNutPartNo:"AG-WN91618Z",spindlePartNo:"SP-22542NW",spindleNo:"26",nutPartNo:"AG-FA-SN100R",washerPartNo:"AG-FA-SW100R",cotterPinPartNo:"AG-FA-CP213",spinnerTypes:"W,X,Y",dimA:'1.86"',dimB:'1.47"',dimC:'1.24"',dimD:'0.57"',brakeBoltPattern:"N/A"},
+  {hubRef:"45-8",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:4500,wheelOffset:'1.12" Positive',hubPartNo:"AG-H4588800-2Z",hubAssemblyPartNo:"AG-H4588800-2ZHA",innerCupPartNo:"LM-603011",innerCupDia:'3.0625"',outerCupPartNo:"LM-67010",outerCupDia:'2.3280"',innerConePartNo:"LM-603049",innerConeDia:'1.7812"',outerConePartNo:"LM-67048",outerConeDia:'1.2500"',dustCapPartNo:"AG-DC-244Z",greaseSealPartNo:"AG-GS-30662250SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1625Z",wheelNutPartNo:"AG-WN5818Z",spindlePartNo:"SP-458225-140",spindleNo:"17",nutPartNo:"AG-FA-SN0750",washerPartNo:"AG-FA-SW0750-H",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.83"',dimB:'1.26"',dimC:'0.97"',dimD:'1.38"',brakeBoltPattern:"N/A"},
+  {hubRef:"778",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:4910,wheelOffset:'1.50" Negative',hubPartNo:"AG-H7788800-1Z",hubAssemblyPartNo:"AG-H7788800-1ZHA",innerCupPartNo:"25520",innerCupDia:'3.2650"',outerCupPartNo:"25821",outerCupDia:'2.8750"',innerConePartNo:"25590",innerConeDia:'1.7960"',outerConePartNo:"25877",outerConeDia:'1.3750"',dustCapPartNo:"AG-DC-315Z",greaseSealPartNo:"AG-GS-36282000SL",wheelBoltPartNo:"AG-WB1125Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-778213-155",spindleNo:"18",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875-2",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.50"',dimB:'1.75"',dimC:'1.12"',dimD:'0.88"',brakeBoltPattern:"N/A"},
+  {hubRef:"813B",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:4910,wheelOffset:'1.50" Negative',hubPartNo:"AG-H813B8800-2Z",hubAssemblyPartNo:"AG-H813B8800-2ZHA",innerCupPartNo:"25520",innerCupDia:'3.2650"',outerCupPartNo:"25821",outerCupDia:'2.8750"',innerConePartNo:"25590",innerConeDia:'1.7960"',outerConePartNo:"25877",outerConeDia:'1.3750"',dustCapPartNo:"AG-DC-315Z",greaseSealPartNo:"AG-GS-36282000SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS2310Z",wheelNutPartNo:"AG-WN91618Z",spindlePartNo:"SP-778213-155",spindleNo:"18",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875-2",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.50"',dimB:'1.75"',dimC:'1.12"',dimD:'0.88"',brakeBoltPattern:'8-8.0" / 5.75" Pilot'},
+  {hubRef:"819B",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:5790,wheelOffset:'1.50" Negative',hubPartNo:"AG-H819B8800-2Z",hubAssemblyPartNo:"AG-H819B8800-2ZHA",innerCupPartNo:"3720",innerCupDia:'3.6718"',outerCupPartNo:"2720",outerCupDia:'3.0000"',innerConePartNo:"3780",innerConeDia:'2.0000"',outerConePartNo:"2790",outerConeDia:'1.3125"',dustCapPartNo:"AG-DC-315Z",greaseSealPartNo:"AG-GS-37562500SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS2310Z",wheelNutPartNo:"AG-WN91618Z",spindlePartNo:"SP-819275-145",spindleNo:"19",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875-2",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.44"',dimB:'2.41"',dimC:'1.25"',dimD:'1.25"',brakeBoltPattern:'8-8.0" / 5.75" Pilot'},
+  {hubRef:"821",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:5790,wheelOffset:'1.50" Negative',hubPartNo:"AG-H8218800-1Z",hubAssemblyPartNo:"AG-H8218800-1ZHA",innerCupPartNo:"3720",innerCupDia:'3.6718"',outerCupPartNo:"2720",outerCupDia:'3.0000"',innerConePartNo:"3780",innerConeDia:'2.0000"',outerConePartNo:"2790",outerConeDia:'1.3125"',dustCapPartNo:"AG-DC-315Z",greaseSealPartNo:"AG-GS-37562500SL",wheelBoltPartNo:"AG-WB1500Z",wheelStudPartNo:"N/A",wheelNutPartNo:"N/A",spindlePartNo:"SP-819275-145",spindleNo:"19",nutPartNo:"AG-FA-SN0875",washerPartNo:"AG-FA-SW0875-2",cotterPinPartNo:"AG-FA-CP175",spinnerTypes:"W,X,Y",dimA:'2.44"',dimB:'2.41"',dimC:'1.25"',dimD:'1.34"',brakeBoltPattern:"N/A"},
+  {hubRef:"60-8B",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:6000,wheelOffset:'0.38" Positive',hubPartNo:"AG-H608B8800-2Z",hubAssemblyPartNo:"AG-H608B8800-2ZHA",innerCupPartNo:"JLM-506810",innerCupDia:'3.5433"',outerCupPartNo:"LM-501310",outerCupDia:'2.8910"',innerConePartNo:"JLM-506849",innerConeDia:'2.1654"',outerConePartNo:"LM-501349",outerConeDia:'1.6250"',dustCapPartNo:"AG-DC-313Z",greaseSealPartNo:"AG-GS-37562750SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1625Z",wheelNutPartNo:"AG-WN5818Z",spindlePartNo:"SP-608275-140",spindleNo:"20",nutPartNo:"AG-FA-SN1000",washerPartNo:"AG-FA-SW1055-H",cotterPinPartNo:"AG-FA-CP205",spinnerTypes:"W,X,Y",dimA:'2.56"',dimB:'1.50"',dimC:'1.37"',dimD:'0.75"',brakeBoltPattern:'8-5.5" / 4.375" Pilot'},
+  {hubRef:"75-8B",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:7500,wheelOffset:'0.38" Negative',hubPartNo:"AG-H758B8800-2Z",hubAssemblyPartNo:"AG-H758B8800-2ZHA",innerCupPartNo:"382A",innerCupDia:'3.8125"',outerCupPartNo:"LM-501310",outerCupDia:'2.8910"',innerConePartNo:"387AS",innerConeDia:'2.5000"',outerConePartNo:"LM-501349",outerConeDia:'1.6250"',dustCapPartNo:"AG-DC-313Z",greaseSealPartNo:"AG-GS-40083000SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1625Z",wheelNutPartNo:"AG-WN5818Z",spindlePartNo:"SP-758300-160",spindleNo:"21",nutPartNo:"AG-FA-SN1000",washerPartNo:"AG-FA-SW1055-H",cotterPinPartNo:"AG-FA-CP205",spinnerTypes:"W,X,Y",dimA:'3.77"',dimB:'1.52"',dimC:'1.39"',dimD:'1.66"',brakeBoltPattern:'8-5.5" / 4.50" Pilot'},
+  {hubRef:"80-8B",boltCount:8,boltCircle:'8.00"',pilot:'6.00"',capacity:8000,wheelOffset:'0.38" Positive',hubPartNo:"AG-H808B8800-2Z",hubAssemblyPartNo:"AG-H808B8800-2ZHA",innerCupPartNo:"JLM-506810",innerCupDia:'3.5433"',outerCupPartNo:"LM-501310",outerCupDia:'2.8910"',innerConePartNo:"JLM-506849",innerConeDia:'2.1654"',outerConePartNo:"LM-501349",outerConeDia:'1.6250"',dustCapPartNo:"AG-DC-313Z",greaseSealPartNo:"AG-GS-37562750SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1500Z",wheelNutPartNo:"AG-WN5818Z",spindlePartNo:"SP-808300-160",spindleNo:"22",nutPartNo:"AG-FA-SN1000",washerPartNo:"AG-FA-SW1055-H",cotterPinPartNo:"AG-FA-CP205",spinnerTypes:"W,X,Y",dimA:'2.72"',dimB:'1.50"',dimC:'1.37"',dimD:'0.86"',brakeBoltPattern:'8-5.5" / 4.375" Pilot'},
+  {hubRef:"871B",boltCount:10,boltCircle:'11.25"',pilot:'8.69"',capacity:12000,wheelOffset:'0.00"',hubPartNo:"AG-H871B101125-2Z",hubAssemblyPartNo:"AG-H871B101125-2ZHA",innerCupPartNo:"39520",innerCupDia:'4.4375"',outerCupPartNo:"453A",outerCupDia:'4.2500"',innerConePartNo:"39585",innerConeDia:'2.5000"',outerConePartNo:"460",outerConeDia:'1.7500"',dustCapPartNo:"AG-DC-575Z (w/screws)",greaseSealPartNo:"AG-GS-45053000SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1813Z",wheelNutPartNo:"AG-WNF3416Z",spindlePartNo:"SP-871313-175",spindleNo:"23",nutPartNo:"AG-FA-SN1250",washerPartNo:"AG-FA-SW1375",cotterPinPartNo:"AG-FA-CP200",spinnerTypes:"W",dimA:'2.81"',dimB:'1.75"',dimC:'1.25"',dimD:'0.06"',brakeBoltPattern:'6-8.25"'},
+  {hubRef:"873B",boltCount:10,boltCircle:'11.25"',pilot:'8.69"',capacity:15000,wheelOffset:'0.00"',hubPartNo:"AG-H873B101125-2Z",hubAssemblyPartNo:"AG-H873B101125-2ZHA",innerCupPartNo:"33462",innerCupDia:'4.6250"',outerCupPartNo:"453A",outerCupDia:'4.2500"',innerConePartNo:"33275",innerConeDia:'2.7500"',outerConePartNo:"460",outerConeDia:'1.7500"',dustCapPartNo:"AG-DC-575Z (w/screws)",greaseSealPartNo:"AG-GS-46313375SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1813Z",wheelNutPartNo:"AG-WNF3416Z",spindlePartNo:"SP-873338-175",spindleNo:"24,24A",nutPartNo:"AG-FA-SN1250",washerPartNo:"AG-FA-SW1375",cotterPinPartNo:"AG-FA-CP200",spinnerTypes:"W",dimA:'2.81"',dimB:'1.75"',dimC:'1.25"',dimD:'0.06"',brakeBoltPattern:'6-8.25"'},
+  {hubRef:"881",boltCount:10,boltCircle:'13.19"',pilot:'11.007"',capacity:20000,wheelOffset:'1.50" Positive',hubPartNo:"AG-H881101319-2Z",hubAssemblyPartNo:"AG-H881101319-2ZHA",innerCupPartNo:"HM-218210",innerCupDia:'5.7864"',outerCupPartNo:"HM-212011",outerCupDia:'4.8125"',innerConePartNo:"HM-218248",innerConeDia:'3.5423"',outerConePartNo:"HM-212049",outerConeDia:'2.6250"',dustCapPartNo:"AG-DC-613Z (w/screws)",greaseSealPartNo:"AG-GS-60074375SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1813Z",wheelNutPartNo:"AG-WNF3416Z",spindlePartNo:"SP-881450-265",spindleNo:"25",nutPartNo:"AG-FA-SN2000",washerPartNo:"AG-FA-SW2125",cotterPinPartNo:"AG-FA-CP350",spinnerTypes:"W",dimA:'3.25"',dimB:'2.28"',dimC:'1.72"',dimD:'1.66"',brakeBoltPattern:"N/A"},
+  {hubRef:"882",boltCount:10,boltCircle:'13.19"',pilot:'11.007"',capacity:22500,wheelOffset:'1.50" Positive',hubPartNo:"AG-H882101319-2Z",hubAssemblyPartNo:"AG-H882101319-2ZHA",innerCupPartNo:"HM-218210",innerCupDia:'5.7864"',outerCupPartNo:"HM-212011",outerCupDia:'4.8125"',innerConePartNo:"HM-218248",innerConeDia:'3.5423"',outerConePartNo:"HM-212049",outerConeDia:'2.6250"',dustCapPartNo:"AG-DC-613Z (w/screws)",greaseSealPartNo:"AG-GS-60074375SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1813Z",wheelNutPartNo:"AG-WNF3416Z",spindlePartNo:"SP-881450-265",spindleNo:"25",nutPartNo:"AG-FA-SN2000",washerPartNo:"AG-FA-SW2125",cotterPinPartNo:"AG-FA-CP350",spinnerTypes:"W",dimA:'3.25"',dimB:'2.28"',dimC:'1.72"',dimD:'1.66"',brakeBoltPattern:"N/A",notes:"*Non-stock item"},
+  {hubRef:"981",boltCount:10,boltCircle:'13.19"',pilot:'11.007"',capacity:22500,wheelOffset:'1.50" Positive',hubPartNo:"AG-H981101319-2Z",hubAssemblyPartNo:"AG-H981101319-2ZHA",innerCupPartNo:"HM-218210",innerCupDia:'5.7864"',outerCupPartNo:"HM-212011",outerCupDia:'4.8125"',innerConePartNo:"HM-218248",innerConeDia:'3.5423"',outerConePartNo:"HM-212049",outerConeDia:'2.6250"',dustCapPartNo:"AG-DC-613Z (w/screws)",greaseSealPartNo:"AG-GS-60074375SL",wheelBoltPartNo:"N/A",wheelStudPartNo:"AG-WS1813Z",wheelNutPartNo:"AG-WNF3416Z",spindlePartNo:"SP-881450-265",spindleNo:"25",nutPartNo:"AG-FA-SN2000",washerPartNo:"AG-FA-SW2125",cotterPinPartNo:"AG-FA-CP350",spinnerTypes:"W",dimA:'3.25"',dimB:'2.28"',dimC:'1.72"',dimD:'1.66"',brakeBoltPattern:"N/A",notes:"*Non-stock item"},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let query = "";
+let boltFilter = "all";
+const expanded = new Set();
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function highlight(text, q) {
+  if (!q) return esc(text);
+  try {
+    const safe = q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const re = new RegExp(`(${safe})`, 'gi');
+    return esc(text).replace(re, '<mark>$1</mark>');
+  } catch { return esc(text); }
+}
+
+function norm(str) { return String(str).toLowerCase().replace(/[\s\-]/g,''); }
+
+function hubMatches(hub, q) {
+  if (!q) return true;
+  const n = norm(q);
+  const bearingFields = [hub.innerCupPartNo, hub.innerCupDia, hub.outerCupPartNo, hub.outerCupDia,
+    hub.innerConePartNo, hub.innerConeDia, hub.outerConePartNo, hub.outerConeDia];
+  if (bearingFields.some(f => norm(f).includes(n))) return true;
+  const general = [hub.hubRef, hub.hubPartNo, hub.hubAssemblyPartNo, hub.dustCapPartNo,
+    hub.greaseSealPartNo, hub.spindlePartNo, hub.wheelBoltPartNo, hub.wheelStudPartNo,
+    hub.wheelNutPartNo, String(hub.capacity), String(hub.boltCount)];
+  if (general.some(f => f && norm(f).includes(n))) return true;
+  const seal = SEAL_DATA[hub.greaseSealPartNo];
+  if (seal && [seal.id, seal.od, seal.width, seal.ref].some(v => norm(v).includes(n))) return true;
+  return false;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function pill(label, value, dimExtra, color, q) {
+  const border = color ? `border-color:${color}44` : '';
+  const lblColor = color || '#64748b';
+  return `<div class="pill accent" style="${border}">
+    <span class="lbl" style="color:${lblColor}">${label}</span>
+    <span class="val">${highlight(value, q)}</span>
+    ${dimExtra ? `<span class="dim">${esc(dimExtra)}</span>` : ''}
+  </div>`;
+}
+
+function renderCard(hub, q) {
+  const color = BOLT_COLORS[hub.boltCount] || '#888';
+  const isOpen = expanded.has(hub.hubPartNo);
+  const seal = SEAL_DATA[hub.greaseSealPartNo];
+
+  const bearings = [
+    {label:'Inner Cup', pn: hub.innerCupPartNo, dia: hub.innerCupDia},
+    {label:'Outer Cup', pn: hub.outerCupPartNo, dia: hub.outerCupDia},
+    {label:'Inner Cone', pn: hub.innerConePartNo, dia: hub.innerConeDia},
+    {label:'Outer Cone', pn: hub.outerConePartNo, dia: hub.outerConeDia},
+  ];
+
+  const detailRows = Object.entries(FIELD_LABELS).map(([k, label]) => {
+    const val = hub[k];
+    if (val === undefined || val === null) return '';
+    return `<div class="detail-cell">
+      <span class="lbl">${esc(label)}</span>
+      <span class="val">${highlight(String(val), q)}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="card" style="border-color:${color}33;box-shadow:0 3px 16px ${color}11" data-part="${esc(hub.hubPartNo)}">
+    <div class="card-header" onclick="toggleCard('${esc(hub.hubPartNo)}')">
+      <div class="bolt-badge" style="background:${color};box-shadow:0 0 10px ${color}55">
+        <span class="num">${hub.boltCount}</span>
+        <span class="lbl">BOLT</span>
+      </div>
+      <div class="card-info">
+        <div class="card-ref">${highlight(hub.hubRef, q)}</div>
+        <div class="card-meta" style="color:${color}">${esc(hub.boltCircle)} BC · ${esc(hub.pilot)} Pilot · ${hub.capacity.toLocaleString()} lb</div>
+        <div class="card-part">${highlight(hub.hubPartNo, q)}</div>
+      </div>
+      <span class="chevron ${isOpen ? 'open' : ''}">▼</span>
+    </div>
+
+    <div class="quick-pills">
+      <div class="pill-row">
+        ${bearings.map(b => `<div class="pill">
+          <span class="lbl" style="color:#64748b">${esc(b.label)}</span>
+          <span class="val">${highlight(b.pn, q)}</span>
+          <span class="dim">· ${highlight(b.dia, q)}</span>
+        </div>`).join('')}
+      </div>
+      <div class="pill-row">
+        <div class="pill accent" style="border-color:${color}44">
+          <span class="lbl" style="color:${color}">SPINDLE</span>
+          <span class="val">${highlight(hub.spindlePartNo, q)}</span>
+          <span class="dim">· #${esc(hub.spindleNo)}</span>
+          <span class="sep">·</span>
+          <span class="dim">Types: ${esc(hub.spinnerTypes)}</span>
+        </div>
+        <div class="pill accent" style="border-color:${color}44">
+          <span class="lbl" style="color:${color}">DUST CAP</span>
+          <span class="val">${highlight(hub.dustCapPartNo, q)}</span>
+        </div>
+      </div>
+      <div class="pill-row">
+        <div class="seal-pill accent" style="border-color:${color}44">
+          <div class="seal-top">
+            <span class="lbl" style="color:${color}">GREASE SEAL</span>
+            <span class="val">${highlight(hub.greaseSealPartNo, q)}</span>
+            ${seal ? `<span class="sep">·</span><span class="dim">CR </span><span class="val">${esc(seal.ref)}</span>` : ''}
+          </div>
+          ${seal ? `<div class="seal-bottom">
+            <span class="dim">ID </span><span class="val">${esc(seal.id)}</span>
+            <span class="sep">·</span>
+            <span class="dim">OD </span><span class="val">${esc(seal.od)}</span>
+            <span class="sep">·</span>
+            <span class="dim">W </span><span class="val">${esc(seal.width)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="detail ${isOpen ? 'open' : ''}" id="detail-${esc(hub.hubPartNo).replace(/[^a-z0-9]/gi,'-')}">
+      <div class="detail-grid">${detailRows}</div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const filtered = hubData.filter(h => {
+    if (boltFilter !== 'all' && h.boltCount !== Number(boltFilter)) return false;
+    return hubMatches(h, query);
+  });
+
+  document.getElementById('resultCount').textContent = `${filtered.length} hub${filtered.length !== 1 ? 's' : ''}`;
+
+  const hint = query
+    ? `💡 Showing hubs matching <span>${esc(query)}</span> — tap any card to expand`
+    : `💡 Search by bearing # (e.g. <span>LM-67048</span>), diameter, seal CR, or hub ref`;
+
+  const html = filtered.length === 0
+    ? `<div class="empty"><div class="icon">🔩</div><div class="title">No hubs found</div><div class="sub">Try a bearing like <code>LM-67048</code> or hub ref like <code>888</code></div></div>`
+    : `<div class="hint">${hint}</div>` + filtered.map(h => renderCard(h, query)).join('');
+
+  document.getElementById('results').innerHTML = html;
+}
+
+// ── Toggle card expand ────────────────────────────────────────────────────
+function toggleCard(partNo) {
+  if (expanded.has(partNo)) { expanded.delete(partNo); } else { expanded.add(partNo); }
+  render();
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', function() {
+  query = this.value;
+  document.getElementById('clearBtn').style.display = query ? 'block' : 'none';
+  render();
+});
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  query = '';
+  document.getElementById('searchInput').value = '';
+  this.style.display = 'none';
+  render();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const bolt = this.dataset.bolt;
+    boltFilter = bolt;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      const bv = b.dataset.bolt;
+      b.className = 'filter-btn' + (bv === bolt ? ` active-${bv}` : '');
+    });
+    render();
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
